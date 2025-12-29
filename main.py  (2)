@@ -1,0 +1,59 @@
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# 1. Loading & Preprocessing
+df = sns.load_dataset('titanic')
+cols = ['survived', 'pclass', 'sex', 'age', 'sibsp', 'parch', 'fare']
+df = df[cols].dropna()
+df['sex'] = df['sex'].map({'female': 0, 'male': 1})
+
+X = df.drop('survived', axis=1).values
+y = df['survived'].values.reshape(-1, 1)
+
+# Scaling
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 2. Manual Neural Network Class
+class SimpleNeuralNetwork:
+    def __init__(self, input_size):
+        # Weights and Bias initialization
+        self.weights = np.random.randn(input_size, 1)
+        self.bias = np.zeros((1, 1))
+        
+    def sigmoid(self, z):
+        return 1 / (1 + np.exp(-z))
+    
+    def train(self, X, y, epochs=1000, lr=0.1):
+        for i in range(epochs):
+            # Forward Pass
+            z = np.dot(X, self.weights) + self.bias
+            y_pred = self.sigmoid(z)
+            
+            # Backpropagation (Calculating gradients)
+            error = y_pred - y
+            d_weights = np.dot(X.T, error) / X.shape[0]
+            d_bias = np.mean(error)
+            
+            # Updating Weights
+            self.weights -= lr * d_weights
+            self.bias -= lr * d_bias
+
+    def predict(self, X):
+        z = np.dot(X, self.weights) + self.bias
+        return (self.sigmoid(z) > 0.5).astype(int)
+
+# 3. Running the model
+model = SimpleNeuralNetwork(X_train.shape[1])
+model.train(X_train, y_train, epochs=1500, lr=0.1)
+
+# 4. Evaluation
+predictions = model.predict(X_test)
+accuracy = np.mean(predictions == y_test)
+print(f"--- NumPy-only Neural Network ---")
+print(f"Accuracy: {accuracy:.4f}")
